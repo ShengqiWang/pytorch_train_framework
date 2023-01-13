@@ -1,11 +1,11 @@
 import torch
 from torch import nn
-from dataset import *
-from model import *
-import argparse
+from dataset.yourdataset import *
+from model.yourmodel import *
+from train_parse import *
 import os
 
-from train_utils import *
+from utils.train_utils import *
 from tqdm import tqdm
 
 def get_dataloader(dataset, is_multigpu=False):
@@ -24,8 +24,6 @@ def get_dataloader(dataset, is_multigpu=False):
                                                  collate_fn=dataset.collate_fn)
         return dataloader, None
 
-
-
 def get_model(net, is_gpu=False, is_multigpu=False):
     if is_gpu or is_multigpu:
         net.cuda()
@@ -33,7 +31,6 @@ def get_model(net, is_gpu=False, is_multigpu=False):
         torch.nn.SyncBatchNorm.convert_sync_batchnorm(net)
         net = DDP(net, device_ids=[GPUNO], find_unused_parameters=False)
     return net
-
 
 def train_one_epoch(epoch, net, trloader, trsampler, optimizer, lossfun, recorder, is_gpu=False, is_multigpu=False):
     net.train()
@@ -54,7 +51,6 @@ def train_one_epoch(epoch, net, trloader, trsampler, optimizer, lossfun, recorde
         if (not is_multigpu or GPUNO == 0) and iter%args.iter_display==0:
             recorder.display(iter)
     return net
-
 
 def val(net, tsloader, is_gpu=False, is_multigpu=False):
     # if not is_multigpu or gpu_no==0:
@@ -80,8 +76,7 @@ def val(net, tsloader, is_gpu=False, is_multigpu=False):
     if not is_multigpu or GPUNO==0:
         # print('papa', num)
         acc = (acc/num).item()
-        print('acc:', acc, GPUNO, num)
-
+        print('acc:', acc)
 
 def train():
     trloader, trsampler = get_dataloader(YourDataset(), MULTIGPU)
@@ -104,16 +99,6 @@ def train():
 MULTIGPU = 1   # use multiple gpu or not
 GPU = 1    # use single gpu or not
 GPUNO = 0  # single gpu no
-
-def parse_args():
-    """Parse input arguments."""
-    parser = argparse.ArgumentParser(description='config')
-    parser.add_argument('--batch_size', default=255, type=int)
-    parser.add_argument('--epoch_num', default=10, type=int)
-    parser.add_argument('--lr', default=0.01, type=int)
-    parser.add_argument('--iter_display', default=10, type=int)
-    args = parser.parse_args()
-    return args
 
 args = parse_args()
 
