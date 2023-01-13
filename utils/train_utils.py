@@ -69,11 +69,11 @@ class LossRecorder():
         self.loss_num += 1
 
     def display(self, iter):
-        print("iter", iter, " ||| ", end = "")
+        print("iter", iter, " || | ", end = "")
         for key in self.lossmsg.keys():
             print(key+": " , end="")
             print("%.3f" % (self.lossmsg[key]/self.loss_num), end="")
-            print(" ||| ", end="")
-        print("\n")
+            print(" | ", end="")
+        print("||")
         self.loss_num = 0
         self.is_start = True

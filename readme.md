@@ -9,7 +9,7 @@ The framework supports for CPU, single GPUs and multiple GPUs(only nvidia cuda).
 
 ## Install 
 
-All package used in this framework (e.g. numpy, torch)
+All packages used in this framework should be installed (e.g. numpy, torch, tqdm)
 
 
 ## Instructions
