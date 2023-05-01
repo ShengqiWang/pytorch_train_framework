@@ -6,8 +6,11 @@ from model.yourmodel import *
 from train_parse import *
 import os
 
-from utils.train_utils import *
+from utils.multi_gpu import *
+from utils.loss_rec import *
 from tqdm import tqdm
+
+from val import *
 
 def get_dataloader(dataset, is_multigpu=False):
     if is_multigpu:
@@ -56,32 +59,6 @@ def train_one_epoch(epoch, net, trloader, trsampler, optimizer, lr_sche, lossfun
     lr_sche.step()   # lr_sche by epoch, if you want to update by iter, please put this line in the loop
     return net
 
-def val(net, tsloader, is_gpu=False, is_multigpu=False):
-    # if not is_multigpu or gpu_no==0:
-    # if 1:
-    net.eval()
-    label_list = []
-    pred_list = []
-    for iter, (data, label) in enumerate(tqdm(tsloader)):
-        if is_gpu or is_multigpu:
-            data = data.cuda()
-            label = label.cuda()
-        
-        pred = net(data)
-        label_list.append(label.cpu())
-        pred_list.append(pred.cpu())
-    label = torch.cat(label_list, dim=0)
-    pred = torch.cat(pred_list, dim=0)
-    acc = torch.sum((label-pred)**2)
-    acc = torch.tensor([acc]).cuda()
-    num = torch.tensor([pred.shape[0]]).cuda()
-    acc = sum_tensor(acc)
-    num = sum_tensor(num)
-    if not is_multigpu or GPUNO==0:
-        # print('papa', num)
-        acc = (acc/num).item()
-        print('acc:', acc)
-
 def train():
     trloader, trsampler = get_dataloader(YourDataset(), MULTIGPU)
     tsloader, _ = get_dataloader(YourDataset(), MULTIGPU)
@@ -91,21 +68,21 @@ def train():
     optimizer = optim.Adam(net.parameters(), lr=args.lr)
     lr_sche = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.lr_milestone, gamma=0.1)
     loss_fun = MyLoss()
-    recorder = LossRecorder()
+    recorder = LossRecorder(is_tb=args.use_tensorboard, process_id=GPUNO)
     for epoch_no in range(args.epoch_num):
         net = train_one_epoch(epoch_no, net, trloader, trsampler,\
                               optimizer, lr_sche, loss_fun, recorder, \
                               is_gpu=GPU, is_multigpu=MULTIGPU)
-        val(net, tsloader, is_gpu=GPU, is_multigpu=MULTIGPU)
+        val(net, tsloader, gpu_no=GPUNO, is_gpu=GPU, is_multigpu=MULTIGPU)
         
         # torch.save(net.module.state_dict(), 'para.pkl')
 
 
-MULTIGPU = 1   # use multiple gpu or not
-GPU = 1    # use single gpu or not
-GPUNO = 0  # single gpu no
-
 args = parse_args()
+
+MULTIGPU = args.is_multigpu   # use multiple gpu or not
+GPU = args.is_gpu    # use single gpu or not
+GPUNO = args.gpu_no  # single gpu no
 
 if __name__ == '__main__':
     if MULTIGPU:

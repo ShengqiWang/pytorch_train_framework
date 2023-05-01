@@ -1,0 +1,1 @@
+CUDA_VISIBLE_DEVICES=1,2 OMP_NUM_THREADS=1 torchrun --nproc_per_node=2 --master_port=23458 val.py  # train with multiple GPU
